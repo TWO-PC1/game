@@ -13,12 +13,11 @@ url = 'ws://localhost:8080'
 # WebSocket 연결
 ws = websocket.create_connection(url)
 
-# 세션 ID 생성
-session_id = ws.recv()
+
 
 # 연결된 WebSocket 서버에 메시지 전송
 # 이름 설정
-message = {"sessionId": session_id, "type": "nameset","data":'ysj'}
+message = { "type": "nameset","data":'ysj'}
 ws.send(json.dumps(message))
 
 # WebSocket 서버로부터 메시지 수신
@@ -47,11 +46,14 @@ def send_message():
     # TODO: 메시지 전송 코드 작성
     print(data)
     if data =="makeroom":
-        data = {"sessionId": session_id, "type": "makeroom", "name": "seojun\'s room", "roompd": "111", "maxuser": "3"}
+        data = { "type": "makeroom", "name": "seojun\'s room", "roompd": "111", "maxuser": "3"}
         ws.send(json.dumps(data))
     elif data =="leftroom":
-         data = {"sessionId": session_id, "type": "leftroom"}
+         data = { "type": "leftroom"}
          ws.send(json.dumps(data))
+    elif data =="searchroom":
+        data = { "type": "searchroom"}
+        ws.send(json.dumps(data))
     else:
         data = data.replace("'", "\"")
         ws.send(json.dumps(json.loads(data)))
