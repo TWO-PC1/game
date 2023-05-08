@@ -1,0 +1,25 @@
+git config --global user.email "email" 깃 이메일 
+git config --global user.name "name"  깃 이름 
+git init 깃을 이 폴더에서 쓰겠다.
+git add "파일 이름"  파일 선택 여러 파일은 git add '이름' '이름' git add. 모든 파일
+git commit -m '메모' 메모 
+git status 깃 상태 
+git log --all --oneline 깃 커밋로그 + graph 그래프 모양 
+git diff 전 커밋과 현재 코드 차이 *trash*
+git difftool  + commit(ㄱㄴ) 더 조음  :q or :qa exit
+git branch name 복사본 만들기 
+git switch name 브랜치로 이동
+(기준이 되는 브런치에서) git merge  합칠 브런치명 (같은 파일이름의 파일에서 같은 줄을 수정시 오류 발생)
+git merge -D name
+git rebase (commit2 commit3)
+              -->commit2-1 commit 2-2
+commit2 commit3 commit2-1 commit 2-2 이렇게 로그 정리 용도 
+git rebase 중심브랜치 git merge 새로운 브랜치 
+git merge --squash(깔끔함)
+파일 복구 commit 복구 시간이동 ㄱㄴ
+git restore name 파일 복구 git restore --source "id" 파일명 git restore --stage 커밋아이디  add 취소 
+git revert 커밋아이디 (커밋아이디)commit 취소  :wq 저장 vim 뜨면  최근 commit 제거 git revert HEAD 
+git reset --hard 커밋아이디 #협업시 사용 X  soft 변경사함 스테이징 mixed 변동사항 지우지 말고 unstage
+git push -u https://github.com/TWO-PC1/web-project.git main 깃허브에 올리기
+npm init npm 사용 
+wow!
