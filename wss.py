@@ -52,12 +52,13 @@ def send_message():
          data = { "type": "leftroom"}
          ws.send(json.dumps(data))
     elif data =="searchroom":
-        data = { "type": "searchroom"}
+        data = { "type": "searchroom",'count':'a'}
         ws.send(json.dumps(data))
     else:
         data = data.replace("'", "\"")
         ws.send(json.dumps(json.loads(data)))
     # message = {'sessionId': session_id, 'type': 'ping','data':data}
+    #{"type":"joinroom",'key':''}
     
     
 # 윈도우 생성

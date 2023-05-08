@@ -25,7 +25,7 @@ ERROR 300:이미 설정된 값
 // 연결된 클라이언트들을 저장할 맵
 const clients = new Map();
 
-const room = new Map();
+const rooms = new Map();
 
 
 async function sha256(message) {
@@ -56,7 +56,7 @@ async function sha256(message) {
 
 function makeroomid() {
   let roomId = uuidv4();
-  if (room.has(roomId) == false) {
+  if (rooms.has(roomId) == false) {
     console.log('성공')
     return roomId
 
@@ -72,12 +72,12 @@ function makeroomid() {
 function leftroom(ws) {
 
 
-  if ( clients.get(ws).name !== null ) {
+  if (clients.get(ws).name !== null) {
 
-    if (clients.get(ws).nowroomid !== null&& room !== null) {
+    if (clients.get(ws).nowroomid !== null && rooms !== null) {
       roomid = clients.get(ws).nowroomid
       console.log(roomid)
-      roomuser = room.get(roomid).user;
+      roomuser = rooms.get(roomid).user;
       userIndex = roomuser.findIndex(user => user.name === clients.get(ws).name);
 
       console.log(roomuser)
@@ -87,41 +87,41 @@ function leftroom(ws) {
 
         if (roomuser == "") {
 
-          room.delete(roomid)
+          rooms.delete(roomid)
           clients.get(ws).nowroomid = null
           console.log(clients.get(ws))
           ws.send(JSON.stringify({ 'type': 'status', 'data': ' left room successed' }));
-          console.log(room)
+          console.log(rooms)
           console.log('방에 사람이 없어 방이 제거됩니다!')
-          
+
         } else {
-          room.set(roomid, { 'roomname': room.get(roomid).roomname, 'roompd': room.get(roomid).roompd, 'maxuser': room.get(roomid).maxuser, 'user': [roomuser] })
+          rooms.set(roomid, { 'roomname': rooms.get(roomid).roomname, 'roompd': rooms.get(roomid).roompd, 'maxuser': rooms.get(roomid).maxuser, 'user': [roomuser] })
           clients.get(ws).nowroomid = null
           ws.send(JSON.stringify({ 'type': 'status', 'data': ' left room successed' }));
           console.log(`방에 남은 사람 ${roomuser}`)
         }
-        
+
       } else {
 
-        console.log(room)
+        console.log(rooms)
         ws.send(JSON.stringify({ 'type': 'error', 'data': '401' }));
-      console.log('지금 가능하지 않은 행동입니다!')
+        console.log('지금 가능하지 않은 행동입니다!')
 
-        
+
       }
 
     } else {
       ws.send(JSON.stringify({ 'type': 'error', 'data': '401' }));
       console.log('지금 가능하지 않은 행동입니다!')
 
-      
+
     }
 
 
   } else {
     ws.send(JSON.stringify({ 'type': 'error', 'data': '500' }));
     console.log('데이터 형식이 잘못되었음')
-    
+
   }
 }
 
@@ -137,27 +137,28 @@ function leftroom(ws) {
 //     };
 //     roomList.push(roomData);
 //   });
- 
+
 //     if (client.name !== null && client.ws.readyState === WebSocket.OPEN) {
 //       ws.send(JSON.stringify({ 'type': 'roomlist', 'data': roomList }));
 //     }
-  
+
 // }
 
 // 클라이언트가 연결되었을 때 호출되는 콜백
 wss.on('connection', (ws, req) => {
 
-  
 
 
 
-  let ip =(req.headers['x-forwarded-for'] || req.socket.remoteAddress)
+
+  let ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress)
 
   // 클라이언트 정보를 저장
-  clients.set(ws, { 'name': null, 
-   'ws': ws, 
-   'ip': ip,
-    'nowroomid': null 
+  clients.set(ws, {
+    'name': null,
+    'ws': ws,
+    'ip': ip,
+    'nowroomid': null
   });
 
   console.log(`Client connected: ${ip}`);
@@ -170,9 +171,9 @@ wss.on('connection', (ws, req) => {
     // console.log()
     console.log(message)
     console.log(JSON.parse(message))
-    
 
-    Data = JSON.parse(message)
+
+    let Data = JSON.parse(message)
     if (clients.has(ws)) {
 
 
@@ -200,12 +201,13 @@ wss.on('connection', (ws, req) => {
           if (Data !== null && clients.get(ws).name !== null) {
             if (clients.get(ws).nowroomid == null) {
               roomid = makeroomid()
-              room.set(roomid, {
+              rooms.set(roomid, {
                 'roomname': Data.name,
                 'roompd': sha256(Data.pd),
                 'maxuser': Data.maxuser,
                 'user': [{
-                  'name': clients.get(ws).name
+                  'name': clients.get(ws).name,
+                  'ws':ws
                 }]
               });
 
@@ -215,7 +217,7 @@ wss.on('connection', (ws, req) => {
               clients.set(ws, user);
 
               ws.send(JSON.stringify({ 'type': 'roomid', 'data': roomid }));
-              console.log(room)
+              console.log(rooms)
               break;
             } else {
               ws.send(JSON.stringify({ 'type': 'error', 'data': '401' }));
@@ -231,85 +233,117 @@ wss.on('connection', (ws, req) => {
         case 'leftroom':
           leftroom(ws)
           break;
-          // if (Data !== null && clients.get(ws).name !== null && room !== null) {
+        // if (Data !== null && clients.get(ws).name !== null && room !== null) {
 
-          //   if (clients.get(ws).nowroomid !== null) {
-          //     roomid = clients.get(ws).nowroomid
-          //     console.log(roomid)
-          //     roomuser = room.get(roomid).user;
-          //     userIndex = roomuser.findIndex(user => user.name === clients.get(ws).name);
+        //   if (clients.get(ws).nowroomid !== null) {
+        //     roomid = clients.get(ws).nowroomid
+        //     console.log(roomid)
+        //     roomuser = room.get(roomid).user;
+        //     userIndex = roomuser.findIndex(user => user.name === clients.get(ws).name);
 
-          //     console.log(roomuser)
+        //     console.log(roomuser)
 
-          //     if (userIndex !== -1) {
-          //       roomuser.splice(userIndex, 1);
+        //     if (userIndex !== -1) {
+        //       roomuser.splice(userIndex, 1);
 
-          //       if (roomuser == "") {
+        //       if (roomuser == "") {
 
-          //         room.delete(roomid)
-          //         clients.get(ws).nowroomid = null
-          //         console.log(clients.get(ws))
-          //         ws.send(JSON.stringify({ 'type': 'status', 'data': ' left room successed' }));
-          //         console.log(room)
-          //         console.log('방에 사람이 없어 방이 제거됩니다!')
-          //         break;
-          //       } else {
-          //         room.set(roomid, { 'roomname': room.get(roomid).roomname, 'roompd': room.get(roomid).roompd, 'maxuser': room.get(roomid).maxuser, 'user': [roomuser] })
-          //         clients.get(ws).nowroomid = null
-          //         ws.send(JSON.stringify({ 'type': 'status', 'data': ' left room successed' }));
-          //         console.log(`방에 남은 사람 ${roomuser}`)
-          //       }
-          //       break;
-          //     } else {
+        //         room.delete(roomid)
+        //         clients.get(ws).nowroomid = null
+        //         console.log(clients.get(ws))
+        //         ws.send(JSON.stringify({ 'type': 'status', 'data': ' left room successed' }));
+        //         console.log(room)
+        //         console.log('방에 사람이 없어 방이 제거됩니다!')
+        //         break;
+        //       } else {
+        //         room.set(roomid, { 'roomname': room.get(roomid).roomname, 'roompd': room.get(roomid).roompd, 'maxuser': room.get(roomid).maxuser, 'user': [roomuser] })
+        //         clients.get(ws).nowroomid = null
+        //         ws.send(JSON.stringify({ 'type': 'status', 'data': ' left room successed' }));
+        //         console.log(`방에 남은 사람 ${roomuser}`)
+        //       }
+        //       break;
+        //     } else {
 
-          //       console.log(room)
-          //       break;
-          //     }
+        //       console.log(room)
+        //       break;
+        //     }
 
-          //   } else {
-          //     ws.send(JSON.stringify({ 'type': 'error', 'data': '401' }));
-          //     console.log('지금 가능하지 않은 행동입니다!')
+        //   } else {
+        //     ws.send(JSON.stringify({ 'type': 'error', 'data': '401' }));
+        //     console.log('지금 가능하지 않은 행동입니다!')
 
-          //     break;
-          //   }
-
-
-          // } else {
-          //   ws.send(JSON.stringify({ 'type': 'error', 'data': '500' }));
-          //   console.log('데이터 형식이 잘못되었음')
-          //   break;
-          // }
-          case 'searchroom':
-            let count
-            if (Data.data && Data.data.count !== undefined){
-              count = Data.data.count 
-            } else {
-              count = 5
-            }
-             
-            const roomList = [];
-            room.forEach((value, key) => {
-              if (roomList.length >= count) return;
-              const roomData = {
-                'roomid': key,
-                'roomname': value.roomname,
-                'maxuser': value.maxuser,
-                'usercount': value.user.length
-              };
-              roomList.push(roomData);
-            });
-          
-            if (clients.has(ws) && clients.get(ws).name !== null && ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ 'type': 'roomlist', 'data': roomList }));
-            }
-            break;
+        //     break;
+        //   }
 
 
+        // } else {
+        //   ws.send(JSON.stringify({ 'type': 'error', 'data': '500' }));
+        //   console.log('데이터 형식이 잘못되었음')
+        //   break;
+        // }
+        case 'searchroom':
+          let count
+          if (Data.count && typeof Data.count === "number" && Data.count !== undefined) {
+            count = Data.data.count
+          } else {
+            count = 5
+          }
+
+          const roomList = [];
+          rooms.forEach((value, key) => {
+            if (roomList.length >= count) return;
+            const roomData = {
+              'roomid': key,
+              'roomname': value.roomname,
+              'maxuser': value.maxuser,
+              'usercount': value.user.length
+            };
+            roomList.push(roomData);
+          });
+
+          if (clients.has(ws) && clients.get(ws).name !== null && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ 'type': 'roomlist', 'data': roomList }));
+          }
+          break;
 
 
+
+
+        case 'joinroom':
+          if (Data.key && Data.key !== undefined && rooms.has(Data.key)) {
+            let finduser= rooms.get(Data.key).user.find(user => user.ws === ws); //찾은 요소 반환
             
+            if (clients.get(ws).nowroomid !== null && clients.get(ws).name !== null&finduser==undefined) {
+              console.log('room!')
+
+              let user = clients.get(ws);
+              user.nowroomid = Data.key;
+              clients.set(ws, user);
+
+              roomuser = rooms.get(Data.key).user
+              roomuser.push({'name':clients.get(ws).name,'ws':ws})
+
+              rooms.get(Data.key).user=roomuser
+
+
+              break;
+
+            } else {
+              ws.send(JSON.stringify({ 'type': 'error', 'data': '401' }));
+              console.log('지금 가능하지 않은 행동입니다!')
+console.log(Data.key)
+console.log(rooms.has(Data.key))
+              break;
+            }
+
+
+          } else {
+            ws.send(JSON.stringify({ 'type': 'error', 'data': '500' }));
+            console.log('데이터 형식이 잘못되었음')
+            break;
+          }
         case 'ping':
-          ws.send(JSON.stringify({ 'type': 'ping'}));
+          ws.send(JSON.stringify({ 'type': 'ping' }));
           console.log('ping')
           break;
 
@@ -324,7 +358,7 @@ wss.on('connection', (ws, req) => {
       console.log('올바르지 않은 접근')
       console.log(JSON.parse(message))
       console.log(userData)
-   
+
 
     }
 
@@ -337,7 +371,7 @@ wss.on('connection', (ws, req) => {
       //세션 아이디 찾기 
       let UserData = clients.get(ws)
       leftroom(ws)
-      
+
       if (UserData !== null) {
         console.log(`Client disconnected: name:${UserData.name} ip:${UserData.ip}`);
         clients.delete(ws);
