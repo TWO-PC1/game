@@ -313,7 +313,7 @@ wss.on('connection', (ws, req) => {
           if (Data.key && Data.key !== undefined && rooms.has(Data.key)) {
             let finduser= rooms.get(Data.key).user.find(user => user.ws === ws); //찾은 요소 반환
             
-            if (clients.get(ws).nowroomid !== null && clients.get(ws).name !== null&finduser==undefined) {
+            if (clients.get(ws).nowroomid == null && clients.get(ws).name !== null&finduser==undefined) {
               console.log('room!')
 
               let user = clients.get(ws);
@@ -347,9 +347,11 @@ console.log(rooms.has(Data.key))
           console.log('ping')
           break;
 
-
+          default:
+            console.log('as');
+            break;
       }
-
+       
       // 해당 세션 ID를 가진 클라이언트에게 메시지 전달
       // clients.get(ws).ws.send(message);//바꾸셈
     } else {

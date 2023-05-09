@@ -30,7 +30,7 @@ def data_receive():
         data = ws.recv()
         # 받은 데이터 처리
         q.put(data)
- 
+            
         print(q.get())
 q = queue.Queue()
 thread = threading.Thread(target=data_receive, args=())
@@ -55,27 +55,41 @@ def send_message():
         data = { "type": "searchroom",'count':'a'}
         ws.send(json.dumps(data))
     else:
-        data = data.replace("'", "\"")
-        ws.send(json.dumps(json.loads(data)))
+        data = {"type":"joinroom",'key':data}
+        ws.send(json.dumps(data))
+        # data = data.replace("'", "\"")
+        # ws.send(json.dumps(json.loads(data)))
     # message = {'sessionId': session_id, 'type': 'ping','data':data}
     #{"type":"joinroom",'key':''}
-    
-    
+
 # 윈도우 생성
 window = tk.Tk()
 window.title("메시지 입력")
 
-# 입력 창 생성
-entry = tk.Entry(window)
-entry.pack(side=tk.LEFT)
+# def updata_message():
+#     msg = entry.get()
+#     text.insert(END, msg+'\n')
+#     entry.delete(0, END)
 
+# text = tk.Text(window)
+# text.pack()
+
+# 메시지 창 생성
+message = tk.Message(window, text="보여주기만 가능한 메시지입니다.", width=200)
+message.pack()
 # 전송 버튼 생성
 button = tk.Button(window, text="전송", command=send_message)
-button.pack(side=tk.RIGHT)
+button.pack(side=tk.BOTTOM)
+
+# 입력 창 생성
+entry = tk.Entry(window)
+entry.pack(side=tk.BOTTOM)
+if(q.get().type is not None and q.get().type=='status'):
+    pass
 
 # 윈도우 실행
 
-        
+window.geometry("500x500")
 window.mainloop()
 
 
