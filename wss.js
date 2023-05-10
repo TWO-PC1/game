@@ -23,20 +23,21 @@ ERROR 300:이미 설정된 값
 
 */
 // 연결된 클라이언트들을 저장할 맵
+
 const clients = new Map();
 
 const rooms = new Map();
 
 
-async function sha256(message) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  console.log(hashHex)
-  return hashHex;
-}
+// async function sha256(message) {
+//   const encoder = new TextEncoder();
+//   const data = encoder.encode(message);
+//   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+//   const hashArray = Array.from(new Uint8Array(hashBuffer));
+//   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+//   console.log(hashHex)
+//   return hashHex;
+// }
 
 function makeroomid() {
   let roomId = uuidv4();
@@ -117,13 +118,18 @@ handleMessage(message,ws)//메세지 처리
 
 
 const handleMessage = async (message, ws) => {
+  let Data 
+  try {
     console.log(message)
     console.log(JSON.parse(message))
 
 
-    let Data = JSON.parse(message)
+     Data = JSON.parse(message)
 
 
+  } catch(error){
+    console.error(error)
+  }
     if (clients.has(ws)) {
 
 
@@ -147,55 +153,81 @@ const handleMessage = async (message, ws) => {
                     break;
                 }
 
-            case 'makeroom':
-                if (Data?.name !== null  && Data?.maxuser >= 2 && clients.get(ws).name !== null) {
-                    if (clients.get(ws).nowroomid == null) {
-                      if(Data?.pd!==null){
-                        roomid = makeroomid()
-                        rooms.set(roomid, {
-                            'roomname': Data.name,
-                            'roompd': null,
-                            'maxuser': Data.maxuser,
-                            'user': [{
-                                'name': clients.get(ws).name,
-                                'ws': ws
-                            }]
-                        });
-                      } else {
-                         roomid = makeroomid()
-                        rooms.set(roomid, {
-                            'roomname': Data.name,
-                            'roompd': await sha256(Data.pd),
-                            'maxuser': Data.maxuser,
-                            'user': [{
-                                'name': clients.get(ws).name,
-                                'ws': ws
-                            }]
-                        });
-                      }
+            // case 'makeroom':
+            //     if (Data?.name !== null && Data?.pd !== null && Data?.maxuser !== null && clients.get(ws).name !== null) {
+            //         if (clients.get(ws).nowroomid == null) {
+            //             roomid = makeroomid()
+            //             rooms.set(roomid, {
+            //                 'roomname': Data.name,
+            //                 'roompd': await sha256(Data.pd),
+            //                 'maxuser': Data.maxuser,
+            //                 'user': [{
+            //                     'name': clients.get(ws).name,
+            //                     'ws': ws
+            //                 }]
+            //             });
 
-                        let user = clients.get(ws);
-                        user.nowroomid = roomid;
-                        clients.set(ws, user);
+
+            //             let user = clients.get(ws);
+            //             user.nowroomid = roomid;
+            //             clients.set(ws, user);
 
                        
-                        Msend(ws,{ 'type': 'roomid', 'data': roomid });
-                        console.log(rooms)
-                        break;
-                    } else {
-                        Msend(ws,{ 'type': 'error', 'data': '401' });
-                        console.log('지금 가능하지 않은 행동입니다!')
+            //             Msend(ws,{ 'type': 'roomid', 'data': roomid });
+            //             console.log(rooms)
+            //             break;
+            //         } else {
+            //             Msend(ws,{ 'type': 'error', 'data': '401' });
+            //             console.log('지금 가능하지 않은 행동입니다!')
 
-                        break;
-                    }
-                } else {
-                    Msend(ws,{ 'type': 'error', 'data': '500' });
-                    console.log('데이터 형식이 잘못되었음')
-                    break;
-                }
+            //             break;
+            //         }
+            //     } else {
+            //         Msend(ws,{ 'type': 'error', 'data': '500' });
+            //         console.log('데이터 형식이 잘못되었음')
+            //         break;
+            //     }
+
+            case 'makeroom':
+              if (Data?.name !== null && Data?.roompd !== null && Data?.maxuser !== null && clients.get(ws).name !== null) {
+                  if (clients.get(ws).nowroomid == null) {
+                      roomid = makeroomid()
+                      rooms.set(roomid, {
+                          'roomname': Data.name,
+                          'roompd': crypto.createHash('sha256').update(Data.roompd).digest('hex'),
+                          'maxuser': Data.maxuser,
+                          'user': [{
+                              'name': clients.get(ws).name,
+                              'ws': ws
+                          }]
+                      });
+          
+          
+                      let user = clients.get(ws);
+                      user.nowroomid = roomid;
+                      clients.set(ws, user);
+          
+                     
+                      Msend(ws,{ 'type': 'roomid', 'data': roomid });
+                      console.log(rooms)
+                      break;
+                  } else {
+                      Msend(ws,{ 'type': 'error', 'data': '401' });
+                      console.log('지금 가능하지 않은 행동입니다!')
+          
+                      break;
+                  }
+              } else {
+                  Msend(ws,{ 'type': 'error', 'data': '500' });
+                  console.log('데이터 형식이 잘못되었음')
+                  break;
+              }
+
             case 'leftroom':
                 leftroom(ws)
                 break;
+
+
             case 'searchroom':
                 let count
                 if (Data.count && typeof Data.count === "number" && Data.count !== undefined) {
@@ -216,62 +248,90 @@ const handleMessage = async (message, ws) => {
                     roomList.push(roomData);
                 });
 
-                if (clients.has(ws) && clients.get(ws).name !== null && ws.readyState === WebSocket.OPEN) {
-                    
+                
                     Msend(ws,{ 'type': 'roomlist', 'data': roomList });
-                    
-                }
+                
                 break;
 
-
-
-
-            case 'joinroom':
-                if (Data?.key !== undefined && rooms.has(Data?.key)) {
-                    let finduser = rooms.get(Data.key).user.find(user => user.ws === ws); //찾은 요소 반환
-                    let nowroomuser = rooms.get(Data.key).user.length
-                    console.log(nowroomuser)
-                    if (clients.get(ws).nowroomid == null && clients.get(ws).name !== null && finduser == undefined && nowroomuser<rooms.get(Data.key).maxuser) {
-                      if( rooms.get(Data.key).roompd== null ){
-                        console.log('room!')
-
-                        clients.get(ws).nowroomid = Data.key;//들어온 유저의 nowroomid에 room key추가
+                // case 'joinroom':
+                //   if (Data?.key !== undefined && rooms.has(Data?.key)) {
+                //       let finduser = rooms.get(Data.key).user.find(user => user.ws === ws); //찾은 요소 반환
+                //       let nowroomuser = rooms.get(Data.key).user.length
+                //       console.log(nowroomuser)
+                //       if (clients.get(ws).nowroomid == null && clients.get(ws).name !== null && finduser == undefined && nowroomuser<rooms.get(Data.key).maxuser) {
+                //         if( rooms.get(Data.key).roompd== null ){
+                //           console.log('room!')
+  
+                //           clients.get(ws).nowroomid = Data.key;//들어온 유저의 nowroomid에 room key추가
+                          
+                //           roomuser = rooms.get(Data.key).user
+                //           roomuser.push({ 'name': clients.get(ws).name, 'ws': ws })
+  
+                //           rooms.get(Data.key).user = roomuser
+                //           console.log(`${rooms.get(Data.key).roomname}에 입장하였습니다!`)
+                //           Msend(ws,{ 'type': 'successed', 'data': 'joinroom' });
+                //       } else if(rooms.get(Data.key).roompd===await sha256(Data.roomdpd)){
                         
-                        roomuser = rooms.get(Data.key).user
-                        roomuser.push({ 'name': clients.get(ws).name, 'ws': ws })
+                //         console.log(`${rooms.get(Data.key).roomname}에 입장하였습니다!`)
+  
+                //         clients.get(ws).nowroomid = Data.key;//들어온 유저의 nowroomid에 room key추가
+                        
+                //         roomuser = rooms.get(Data.key).user
+                //         roomuser.push({ 'name': clients.get(ws).name, 'ws': ws })
+  
+                //         rooms.get(Data.key).user = roomuser
+  
+                //       } else {
+                //         Msend(ws,{ 'type': 'error', 'data': '500' })
+                //         console.log('비밀번호가 틀렸습니다!')
+                //         break;
 
-                        rooms.get(Data.key).user = roomuser
+                //       }
+                //           break;
+  
+                //       } else {
+                //           Msend(ws,{ 'type': 'error', 'data': '401' })
+                //           console.log('지금 가능하지 않은 행동입니다!')
+                //           console.log(Data.key)
+                //           console.log(rooms.has(Data.key))
+                //           break;
+                //       }
+  
+  
+                //   } else {
+                //       Msend(ws,{ 'type': 'error', 'data': '500' })
+                //       console.log('데이터 형식이 잘못되었음')
+                //       break;
+                //   }
 
-                        Msend(ws,{ 'type': 'successed', 'data': 'joinroom' });
-                    } else if(rooms.get(Data.key).roompd===await sha256(Data.roomdpd)){
-                      console.log(`${rooms.get(Data.key)}에 입장하였습니다!`)
+          case 'joinroom':
+            const wsClient = clients.get(ws);
+            const roomKey = Data?.key;
+            const room = rooms.get(roomKey);
+            const roomUser = room?.user;
+            const roomMaxUser = room?.maxuser;
+            const roomPd = room?.roompd;
+            const userPd = Data?.roompd;
+            console.log(userPd)
 
-                      clients.get(ws).nowroomid = Data.key;//들어온 유저의 nowroomid에 room key추가
-                      
-                      roomuser = rooms.get(Data.key).user
-                      roomuser.push({ 'name': clients.get(ws).name, 'ws': ws })
+            if (room && wsClient.nowroomid === null && wsClient.name !== null && roomUser.every(user => user.ws !== ws) && roomUser.length < roomMaxUser) {
+              if (roomPd === null ||(userPd!==undefined &&roomPd === crypto.createHash('sha256').update(userPd).digest('hex'))) {
+                console.log(`${room.roomname}에 입장하였습니다!`);
+                wsClient.nowroomid = roomKey;
+                roomUser.push({ name: wsClient.name, ws });
+                Msend(ws, { type: 'successed', data: 'joinroom' });
+              } else {
+                Msend(ws, { type: 'error', data: '500' });
+                console.log('비밀번호가 틀렸습니다!');
+              }
+            } else {
+              Msend(ws, { type: 'error', data: '401' });
+              console.log('지금 가능하지 않은 행동입니다!');
+            }
+            break;
 
-                      rooms.get(Data.key).user = roomuser
-
-                    }
-                        break;
-
-                    } else {
-                        Msend(ws,{ 'type': 'error', 'data': '401' })
-                        console.log('지금 가능하지 않은 행동입니다!')
-                        console.log(Data.key)
-                        console.log(rooms.has(Data.key))
-                        break;
-                    }
-
-
-                } else {
-                    Msend(ws,{ 'type': 'error', 'data': '500' })
-                    console.log('데이터 형식이 잘못되었음')
-                    break;
-                }
             case 'ping':
-                Msend(ws,{ 'type': 'ping','data':'a'});
+                Msend(ws,{ 'type': 'ping'});
                 console.log('ping')
                 break;
 
@@ -310,67 +370,120 @@ function Msend(ws,message) {
 
 }
 
-function leftroom(ws) {
+// function leftroom(ws) {
 
 
-  if (clients.get(ws)?.name !== null) {
+//   if (clients.get(ws)?.name !== null) {
 
-    if (clients.get(ws).nowroomid !== null && rooms !== null) {
-      roomid = clients.get(ws).nowroomid
+//     if (clients.get(ws)?.nowroomid !== null && rooms !== null) {
+//       roomid = clients.get(ws).nowroomid
       
-      let roomuser = rooms.get(roomid).user;
-      userIndex = roomuser.findIndex(user => user.ws === ws);
+//       let roomuser = rooms.get(roomid).user;
+//       userIndex = roomuser.findIndex(user => user.ws === ws);
 
       
 
-      if (userIndex !== -1) {
-        roomuser.splice(userIndex,1)
-        rooms.get(roomid).user = roomuser;
-        clients.get(ws).nowroomid = null
-        if (roomuser == "") {
+//       if (userIndex !== -1) {
+//         roomuser.splice(userIndex,1)
+//         rooms.get(roomid).user = roomuser;
+//         clients.get(ws).nowroomid = null
+//         if (roomuser == "") {
 
-          rooms.delete(roomid)
+//           rooms.delete(roomid)
           
           
-          Msend(ws,{ 'type': 'status', 'data': ' left room successed' });
-          console.log(rooms)
-          console.log('방에 사람이 없어 방이 제거됩니다!')
+//           Msend(ws,{ 'type': 'status', 'data': ' left room successed' });
+//           console.log(rooms)
+//           console.log('방에 사람이 없어 방이 제거됩니다!')
 
-        } else {
+//         } else {
          
           
-          Msend(ws,{ 'type': 'status', 'data': ' left room successed' });
-          for(i=0;i<roomuser.length;){
-          console.log(`방에 남은 사람 ${rooms.get(roomid).user[i].name }`);
-          i+=1
-        }
+//           Msend(ws,{ 'type': 'status', 'data': ' left room successed' });
+//           for(i=0;i<roomuser.length;){
+//           console.log(`방에 남은 사람 ${rooms.get(roomid).user[i].name }`);
+//           i+=1
+//         }
           
-        }
+//         }
 
-      } else {
+//       } else {
 
-        console.log(rooms)
-        Msend(ws,{ 'type': 'error', 'data': '401' });
-        console.log('지금 가능하지 않은 행동입니다1!')
-        console.log(rooms.get(roomid))
-console.log(clients.get(ws).name)
+//         console.log(rooms)
+//         Msend(ws,{ 'type': 'error', 'data': '401' });
+//         console.log('지금 가능하지 않은 행동입니다1!')
+//         console.log(rooms.get(roomid))
+// console.log(clients.get(ws).name)
 
-      }
+//       }
 
-    } else {
-        Msend(ws,{ 'type': 'error', 'data': '401' });
-      console.log('지금 가능하지 않은 행동입니다!')
+//     } else {
+//         Msend(ws,{ 'type': 'error', 'data': '401' });
+//       console.log('지금 가능하지 않은 행동입니다!')
       
-      console.log(clients.get(ws).name)
+//       console.log(clients.get(ws).name)
       
 
-    }
+//     }
 
 
-  } else {
+//   } else {
     
-    Msend(ws,{ 'type': 'error', 'data': '500' });
-    console.log('데이터 형식이 잘못되었음')
+//     Msend(ws,{ 'type': 'error', 'data': '500' });
+//     console.log('데이터 형식이 잘못되었음')
 
+//   }
+// }
+function leftroom(ws) {
+  const client = clients.get(ws);
+  if (client?.name && client?.nowroomid && rooms.has(client.nowroomid)) {
+    const room = rooms.get(client.nowroomid);
+    const userIndex = room.user.findIndex(user => user.ws === ws);
+    if (userIndex !== -1) {
+      room.user.splice(userIndex, 1);
+      client.nowroomid = null;
+      if (room.user.length === 0) {
+        rooms.delete(client.nowroomid);
+        Msend(ws, { 'type': 'status', 'data': ' left room successed' });
+        console.log('방에 사람이 없어 방이 제거됩니다!');
+      } else {
+        Msend(ws, { 'type': 'status', 'data': ' left room successed' });
+        console.log(`방에 남은 사람 ${room.user.map(user => user.name).join(', ')}`);
+      }
+    } else {
+      Msend(ws, { 'type': 'error', 'data': '401' });
+      console.log('지금 가능하지 않은 행동입니다1!');
+      console.log(room);
+      console.log(client.name);
+    }
+  } else {
+    Msend(ws, { 'type': 'error', 'data': '401' });
+    console.log('지금 가능하지 않은 행동입니다!');
+    console.log(client?.name);
   }
 }
+// function Datacheck(Data, check) { //ex {"name":"True","key":"False","nowroomid":"True"},[ 'nowroomid', 'key', 'name' ]
+//   let DKEY = Object.keys(Data).sort()
+//   let KEY = check.sort()
+//   let keylen = KEY.length
+//   let Dkeylen = DKEY.length
+//   if (keylen !== Dkeylen) {
+    
+//     console.log(DKEY)
+//     console.log(KEY)
+//       return false;
+//   } 
+//       for (i = 0; i <= keylen; i++) {
+//           if (DKEY[i] == KEY[i]) {
+//               if (i >= keylen) {
+//                   return true;
+//               }
+//           } else {
+
+//             console.log(DKEY)
+//             console.log(KEY)
+//               return false;
+//           }
+//       }
+
+// }

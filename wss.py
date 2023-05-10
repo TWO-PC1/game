@@ -46,16 +46,16 @@ def send_message():
     # TODO: 메시지 전송 코드 작성
     print(data)
     if data =="makeroom":
-        data = { "type": "makeroom", "name": "seojun\'s room", "roompd": "", "maxuser": "3"}
+        data = { "type": "makeroom", "name": "seojun\'s room", "roompd": "111", "maxuser": "3"}
         ws.send(json.dumps(data))
     elif data =="leftroom":
          data = { "type": "leftroom"}
          ws.send(json.dumps(data))
     elif data =="searchroom":
-        data = { "type": "searchroom",'count':'5'}
+        data = { "type": "searchroom",'count':'a'}
         ws.send(json.dumps(data))
     else:
-        data = {"type":"joinroom",'key':data,'roompd':None}
+        data = {"type":"joinroom",'key':data,'roompd':'111'}
         ws.send(json.dumps(data))
         # data = data.replace("'", "\"")
         # ws.send(json.dumps(json.loads(data)))
