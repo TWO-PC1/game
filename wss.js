@@ -148,9 +148,21 @@ const handleMessage = async (message, ws) => {
                 }
 
             case 'makeroom':
-                if (Data?.name !== null && Data?.pd !== null && Data?.maxuser !== null && clients.get(ws).name !== null) {
+                if (Data?.name !== null  && Data?.maxuser >= 2 && clients.get(ws).name !== null) {
                     if (clients.get(ws).nowroomid == null) {
+                      if(Data?.pd!==null){
                         roomid = makeroomid()
+                        rooms.set(roomid, {
+                            'roomname': Data.name,
+                            'roompd': null,
+                            'maxuser': Data.maxuser,
+                            'user': [{
+                                'name': clients.get(ws).name,
+                                'ws': ws
+                            }]
+                        });
+                      } else {
+                         roomid = makeroomid()
                         rooms.set(roomid, {
                             'roomname': Data.name,
                             'roompd': await sha256(Data.pd),
@@ -160,7 +172,7 @@ const handleMessage = async (message, ws) => {
                                 'ws': ws
                             }]
                         });
-
+                      }
 
                         let user = clients.get(ws);
                         user.nowroomid = roomid;
@@ -207,6 +219,7 @@ const handleMessage = async (message, ws) => {
                 if (clients.has(ws) && clients.get(ws).name !== null && ws.readyState === WebSocket.OPEN) {
                     
                     Msend(ws,{ 'type': 'roomlist', 'data': roomList });
+                    
                 }
                 break;
 
@@ -216,8 +229,10 @@ const handleMessage = async (message, ws) => {
             case 'joinroom':
                 if (Data?.key !== undefined && rooms.has(Data?.key)) {
                     let finduser = rooms.get(Data.key).user.find(user => user.ws === ws); //찾은 요소 반환
-
-                    if (clients.get(ws).nowroomid == null && clients.get(ws).name !== null & finduser == undefined) {
+                    let nowroomuser = rooms.get(Data.key).user.length
+                    console.log(nowroomuser)
+                    if (clients.get(ws).nowroomid == null && clients.get(ws).name !== null && finduser == undefined && nowroomuser<rooms.get(Data.key).maxuser) {
+                      if( rooms.get(Data.key).roompd== null ){
                         console.log('room!')
 
                         clients.get(ws).nowroomid = Data.key;//들어온 유저의 nowroomid에 room key추가
@@ -228,6 +243,17 @@ const handleMessage = async (message, ws) => {
                         rooms.get(Data.key).user = roomuser
 
                         Msend(ws,{ 'type': 'successed', 'data': 'joinroom' });
+                    } else if(rooms.get(Data.key).roompd===await sha256(Data.roomdpd)){
+                      console.log(`${rooms.get(Data.key)}에 입장하였습니다!`)
+
+                      clients.get(ws).nowroomid = Data.key;//들어온 유저의 nowroomid에 room key추가
+                      
+                      roomuser = rooms.get(Data.key).user
+                      roomuser.push({ 'name': clients.get(ws).name, 'ws': ws })
+
+                      rooms.get(Data.key).user = roomuser
+
+                    }
                         break;
 
                     } else {
@@ -245,7 +271,7 @@ const handleMessage = async (message, ws) => {
                     break;
                 }
             case 'ping':
-                Msend(ws,{ 'type': 'ping'});
+                Msend(ws,{ 'type': 'ping','data':'a'});
                 console.log('ping')
                 break;
 

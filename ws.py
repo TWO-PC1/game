@@ -12,33 +12,30 @@ url = 'ws://localhost:8080'
 
 # WebSocket 연결
 ws = websocket.create_connection(url)
-
-# 세션 ID 생성
-session_id = ws.recv()
-
-# 연결된 WebSocket 서버에 메시지 전송
-message = {'sessionId': session_id, 'type': 'ping'}
+#이름 설정
+message = { "type": "nameset","data":'ysj'}
 ws.send(json.dumps(message))
 
-# WebSocket 서버로부터 메시지 수신
-response = ws.recv()
-print(response)
+
+# 연결된 WebSocket 서버에 메시지 전송
+message = { "type": "searchroom",'count':'10'}
+ws.send(json.dumps(message))
+
 
 #받은 데이터 q 저장
 def data_receive():
     while True:
         data = ws.recv()
         # 받은 데이터 처리
-        q.put(data)
-        print(q.get())
+        q.put(json.loads(data))
+        # print(data)
 
 q = queue.Queue()
 thread = threading.Thread(target=data_receive, args=())
 thread.daemon = True
 thread.start()
 
-
-
+room = []
 # 초기화
 pygame.init()
 
@@ -53,8 +50,15 @@ win = pygame.display.set_mode((screen_width, screen_height))
 
 # 창 타이틀 설정
 pygame.display.set_caption("Pygame Example")
-message = {'sessionId': session_id, 'type': 'ping'}
+message = {'type': 'ping'}
 ws.send(json.dumps(message))
+
+
+
+
+
+
+
 # 게임 루프
 while True:
     
@@ -69,14 +73,21 @@ while True:
 
 
         
-
+    
     if q.empty():
+        
         continue
+    Data = q.get()
+    if Data.get('type') is not None and Data.get('type') =='roomlist'and Data.get('data')is not None:
+        
+        text = font.render(Data.get('roomname'), True, (255, 255, 255))
+    else:
+        text = font.render('null', True, (255, 255, 255))
     # 배경 색 설정
     win.fill((0, 0, 0))
 
     #글자 설정
-    text = font.render(q.get(), True, (255, 255, 255))
+    # text = font.render(Data, True, (255, 255, 255))
     
     text_rect = text.get_rect(center=(screen_width//2, screen_height//2))
     win.blit(text, text_rect)
